@@ -56,6 +56,7 @@
 function update() {
 	uexpr = u_js_input.value.replaceAll(/sin\(((?:(?:Math\.PI)*(?:Math\.cos)*(?:Math\.sin)*[0-9+*\-pix]*)+)\)/gi, "Math.sin($1)").replaceAll(/pi/gi, "Math.PI").replaceAll(/x/gi, "(i/N)");
 	duexpr = du_js_input.value;
+	if (uexpr.trim().length==0 || duexpr.trim().length==0) return false;
 	for(i = 0; i < N; i++) {
 		u[i]=eval(uexpr)
 		du[i]=eval(duexpr)
@@ -324,7 +325,7 @@ function change() {
 <body onload="init();" style="background-color:gray;" onmouseup="drawing=false;">  
 <div style="text-align:center;"> 
 <h3> Draw arbitrary initial values with your mouse and see the corresponding solution to the wave equation</h3>
-<div id="t" style="font-size:2.5em;">t = 2.1</div>
+<div id="t" style="font-size:2.5em;">t = 0.0</div>
 </div>
 
 <div>
