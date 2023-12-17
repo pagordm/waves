@@ -246,6 +246,13 @@ function drawnext(){
 	draw_solution();
 } 
 
+function skip1() {
+if (!running) {
+	start();
+}
+stop();
+drawnext();
+}
 function init_computation(){
     time = 0
 	for (var k=(bc=='neumann'?0:1); k<N; ++k){
@@ -340,8 +347,8 @@ Your browser doesn't support the HTML5 element canvas.
 Your browser doesn't support the HTML5 element canvas.
 </canvas>  
 <br>
-<input type="radio" name="bc" value="dirichlet">Dirichlet condition: u(0,t)=u(1,t)=0.<br>
-<input type="radio" name="bc" value="neumann" checked="checked">Neumann condition: u<sub>x</sub>(0,t)=u<sub>x</sub>(1,t)=0.<br>
+<input type="radio" name="bc" value="dirichlet" checked="checked">Dirichlet condition: u(0,t)=u(1,t)=0.<br>
+<input type="radio" name="bc" value="neumann">Neumann condition: u<sub>x</sub>(0,t)=u<sub>x</sub>(1,t)=0.<br>
 <p>u(x,0)=  <input type="text" name="u_js_input"> (accepts sin(), cos() and pi, use x as variable) </p>
 <p>u<sub>t</sub>(x,0)= <input type="text" name="du_js_input"> </p>
 
