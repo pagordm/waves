@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<!-- saved from url=(0049)https://www.math.uchicago.edu/~luis/pde/wave.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Wave equation online solver</title>
+<meta name="author" content="Luis Silvestre">
+
+
+<script type="text/javascript">
+	var ctxu;
+	var ctxdu;
+	var canvasu;
+	var canvasdu;
+
+	var ctxsol;
+	var canvassol;
+
+	var tlabel;
+	var boundary;
+	var u_js_input;
+	var du_js_input;
+	var interval;
+	var debug;
+
+	var running = false;
+	var N = 100;
+	var h = 1/N;
+	var time = 0;
+	var u = new Array();
+	var du = new Array();
+	var Fu = new Array();
+	var Fdu = new Array();
+	var sol = new Array();
+
+	for (var i=0; i<N; ++i){
+		if (i>N/3 && i<2*N/3)
+		    u[i] = Math.pow(Math.sin(3*Math.PI*i/N),2) /5;
+		else
+		    u[i] = 0
+		if(i>0) du[i] = (u[i] - u[i-1])*(N-1)/Math.PI;
+		else du[i]=0;
+/*		x = i/N;
+		if (x>2/5 && x<3/5){
+		    u[i] = 0.1*Math.sin(Math.PI*5*(x-2/5))
+		    du[i] = 0.1*Math.PI*5*Math.cos(Math.PI*5*(x-2/5))
+		}*/
+	}
+
+	var bc = 'neumann';
+
+	var lasti = 0;
+	var boxwidth = 600;
+	var boxheight = 200;
+	var drawing = false;
+	
+
+function update() {
+	uexpr = u_js_input.value.replaceAll(/sin\(((?:(?:Math\.PI)*(?:Math\.cos)*(?:Math\.sin)*[0-9+*\-pix]*)+)\)/gi, "Math.sin($1)").replaceAll(/pi/gi, "Math.PI").replaceAll(/x/gi, "(i/N)");
+	duexpr = du_js_input.value;
+	for(i = 0; i < N; i++) {
+		u[i]=eval(uexpr)
+		du[i]=eval(duexpr)
+	}
+	draw();
+}
+function init(){  
+  ctxu = document.getElementById('value-of-u').getContext('2d');  
+  ctxdu = document.getElementById('derivative').getContext('2d');  
+  ctxsol = document.getElementById('solution').getContext('2d');  
+  tlabel = document.getElementById('t');
+  debug = document.getElementById('debug');
+  boundary = document.getElementsByName('bc');
+  u_js_input = document.getElementsByName('u_js_input')[0];
+  du_js_input = document.getElementsByName('du_js_input')[0];
+
+
+  canvasu = document.getElementById('value-of-u');
+  canvasdu = document.getElementById('derivative');
+  canvassol = document.getElementById('solution');
+
+  draw();  
+
+  canvasu.onselectstart = function () { return false; } // ie
+  canvasu.onmousedown = function () { return false; }
+  canvasu.addEventListener('mousedown',mouseDown,false);
+  canvasu.addEventListener('mousemove',mouseMove,false);
+  canvasu.addEventListener('mouseup',mouseUp,false);
+  
+  canvasu.addEventListener("touchstart",touchStart,false);
+  canvasu.addEventListener("touchmove",touchMove,false);
+  canvasu.addEventListener("touchend",mouseUp,false);
+
+  canvasdu.onselectstart = function () { return false; } // ie
+  canvasdu.onmousedown = function () { return false; }
+  canvasdu.addEventListener('mousedown',mouseDown,false);
+  canvasdu.addEventListener('mousemove',mouseMove,false);
+  canvasdu.addEventListener('mouseup',mouseUp,false);
+  
+  canvasdu.addEventListener("touchstart",touchStart,false);
+  canvasdu.addEventListener("touchmove",touchMove,false);
+  canvasdu.addEventListener("touchend",mouseUp,false);
+}
+
+function mapy(y){
+	return (boxheight*(1-y)/2);
+}
+
+function mapi(i){
+	return (boxwidth*i/(N-1));
+}
+
+function mapmx(mx){
+	return Math.round(mx*(N-1)/boxwidth);
+}
+
+function mapmy(my){
+	return (1-2*my/boxheight);
+}
+
+function mouseDown(ev) {
+	if(running) return false;
+	ev.preventDefault();
+	canvas = ev.target; //toElement
+    var rect = canvas.getBoundingClientRect();
+    var mx = ev.clientX - rect.left;
+    var my = ev.clientY - rect.top;
+	drawing = true;
+    if (canvas == canvasu) u[mapmx(mx)] = mapmy(my);
+    else du[mapmx(mx)] = mapmy(my);
+	draw();
+	return false;
+}
+
+function mouseMove(ev) {
+	if(drawing==false) return false;
+	if(running) return false;
+	ev.preventDefault();
+	canvas = ev.target; //toElement
+    var rect = canvas.getBoundingClientRect();
+    var mx = ev.clientX - rect.left;
+    var my = ev.clientY - rect.top;
+    if (canvas == canvasu) u[mapmx(mx)] = mapmy(my);
+    else du[mapmx(mx)] = mapmy(my);
+	draw();
+	return false;
+}
+
+function mouseUp(ev) {
+	drawing = false;
+}
+
+function touchStart(ev) {
+	if(running) return false;
+	ev.preventDefault();
+	canvas = ev.target; //toElement
+    var rect = canvas.getBoundingClientRect();
+    var mx = ev.touches[0].clientX - rect.left;
+    var my = ev.touches[0].clientY - rect.top;
+	drawing = true;
+    if (canvas == canvasu) u[mapmx(mx)] = mapmy(my);
+    else du[mapmx(mx)] = mapmy(my);
+	draw();
+	return false;
+}
+
+function touchMove(ev) {
+	if(drawing==false) return false;
+	if(running) return false;
+	ev.preventDefault();
+	canvas = ev.target; //toElement
+    var rect = canvas.getBoundingClientRect();
+    var mx = ev.touches[0].clientX - rect.left;
+    var my = ev.touches[0].clientY - rect.top;
+    if (canvas == canvasu) u[mapmx(mx)] = mapmy(my);
+    else du[mapmx(mx)] = mapmy(my);
+	draw();
+	return false;
+}
+
+
+function start(){
+  if(running) return false;
+  if(boundary[0].checked) bc='dirichlet';
+  if(boundary[1].checked) bc='neumann';
+  update();
+  init_computation();
+  interval = setInterval(drawnext,50);  
+  running = true;
+  drawing = false;
+}
+
+function stop(){
+  interval = clearInterval(interval);
+  running = false;
+}
+
+function clearu(){
+  if(running) return false;
+  for (var i=0; i<N; ++i){
+    u[i] = 0;
+	du[i] = 0;
+  }
+  draw();
+}
+
+function draw(){
+	canvasu.width = canvasu.width;
+	ctxu.beginPath();
+	ctxu.moveTo(0,mapy(u[0]));
+	for(var i=1; i<N; ++i){
+		ctxu.lineTo(mapi(i),mapy(u[i]));
+	}
+
+    ctxu.lineWidth = 5;
+    ctxu.strokeStyle = 'blue';
+    ctxu.stroke();
+
+	canvasdu.width = canvasdu.width;
+	ctxdu.beginPath();
+	ctxdu.moveTo(0,mapy(du[0]));
+	for(var i=1; i<N; ++i){
+		ctxdu.lineTo(mapi(i),mapy(du[i]));
+	}
+
+    ctxdu.lineWidth = 5;
+    ctxdu.strokeStyle = 'blue';
+    ctxdu.stroke();
+}
+
+function draw_solution(){
+	tlabel.innerHTML = "t = "+time.toFixed(1);
+	canvassol.width = canvassol.width;
+	ctxsol.beginPath();
+	ctxsol.moveTo(0,mapy(sol[0]));
+	for(var i=1; i<N; ++i){
+		ctxsol.lineTo(mapi(i),mapy(sol[i]));
+	}
+
+    ctxsol.lineWidth = 5;
+    ctxsol.strokeStyle = 'blue';
+    ctxsol.stroke();
+}
+
+function drawnext(){  
+	step();
+	draw_solution();
+} 
+
+function init_computation(){
+    time = 0
+	for (var k=(bc=='neumann'?0:1); k<N; ++k){
+	    
+	    s = 0; ds = 0;
+	    for(var i=0; i<N; ++i){
+            if (bc == 'dirichlet'){
+	            s += Math.sin(Math.PI*k*i/N)*u[i];
+	            ds += Math.sin(Math.PI*k*i/N)*du[i];
+	        }
+	        else{
+	            s += Math.cos(Math.PI*k*i/N)*u[i];
+	            ds += Math.cos(Math.PI*k*i/N)*du[i];
+	        }
+	    }
+	    Fu[k] = 2*s/N;
+	    Fdu[k] = 2*ds/N;
+	}
+}
+
+function step() {
+	time += 0.05;
+
+    for(var i=0; i<N; ++i){
+        if (bc == 'dirichlet')
+            sol[i] = 0;
+        else
+            sol[i] = Fu[0]/2;
+    }
+	
+	for (var k=1; k<N; ++k){
+	for (var i=0; i<N; ++i){
+        if (bc == 'dirichlet'){
+	        sol[i] += Fu[k]*Math.sin(Math.PI*k*i/N)*Math.cos(k*time);
+	        sol[i] += Fdu[k]*Math.sin(Math.PI*k*i/N)*Math.sin(k*time) / k;
+	    } else{
+	        sol[i] += Fu[k]*Math.cos(Math.PI*k*i/N)*Math.cos(k*time);
+	        sol[i] += Fdu[k]*Math.cos(Math.PI*k*i/N)*Math.sin(k*time) / k;
+	    }
+	    
+//	    du[i] += -Math.PI * k * Fu[k]*Math.sin(Math.PI * k*i/N)*Math.sin(Math.PI * k*time) + Fdu[k]*Math.sin(Math.PI * k*i/N)*Math.cos(Math.PI * k*time);
+	}}
+	
+	
+/*	var un = new Array();
+	var dun = new Array();
+
+    if(bc=='dirichlet'){
+		un[0]=0;
+		un[N-1]=0;
+		dun[0]=0;
+		dun[N-1]=0;
+	}
+	
+	for (var i=1; i<N-1; ++i){
+		un[i] = u[i] + h*du[i];
+		dun[i] = du[i] + (u[i-1]+u[i+1]-2*u[i])/4;
+	}
+
+	if(bc=='neumann'){
+		un[0]=un[1];
+		un[N-1]=un[N-2];
+		dun[0]=dun[1];
+		dun[N-1]=dun[N-2];
+	}
+
+	u = un;
+	du = dun;*/
+}
+
+function change() {
+	return false;
+}
+</script>
+
+<script src="chrome-extension://nngceckbapebfimnlniiiahkandclblb/content/fido2/page-script.js"></script></head>
+<body onload="init();" style="background-color:gray;" onmouseup="drawing=false;">  
+<div style="text-align:center;"> 
+<h3> Draw arbitrary initial values with your mouse and see the corresponding solution to the wave equation</h3>
+<div id="t" style="font-size:2.5em;">t = 2.1</div>
+</div>
+
+<div>
+
+<div style="position:absolute;left:20px;width:710px;">
+<p> Initial value for u: </p>
+<canvas id="value-of-u" width="600" height="200" style="background-color:white;position:relative;">
+Your browser doesn't support the HTML5 element canvas.
+</canvas>
+<p> Initial value for u<sub>t</sub>: </p>
+<canvas id="derivative" width="600" height="200" style="background-color:white;position:relative;">
+Your browser doesn't support the HTML5 element canvas.
+</canvas>  
+<br>
+<input type="radio" name="bc" value="dirichlet">Dirichlet condition: u(0,t)=u(1,t)=0.<br>
+<input type="radio" name="bc" value="neumann" checked="checked">Neumann condition: u<sub>x</sub>(0,t)=u<sub>x</sub>(1,t)=0.<br>
+<p>u(x,0)=  <input type="text" name="u_js_input"> (accepts sin(), cos() and pi, use x as variable) </p>
+<p>u<sub>t</sub>(x,0)= <input type="text" name="du_js_input"> </p>
+
+<button style="font-size:2em;" onclick="update();"> Draw </button>
+<button style="font-size:2em;" onclick="start();"> Start </button>
+<button style="font-size:2em;" onclick="stop();">Stop</button>
+<button style="font-size:2em;" onclick="drawnext();">Skip 1</button>
+</div>
+
+<div style="position:absolute;left:640px;background-color:#AAAACC;padding:10px;z-index:1;">
+<p> Solution to the Wave equation u<sub>tt</sub> = u<sub>xx</sub>.: </p>
+<canvas id="solution" width="600" height="200" style="background-color:white;position:relative;">
+Your browser doesn't support the HTML5 element canvas.
+</canvas>  
+<p> The coordinate x varies in the horizontal direction. It goes from x=0 on the left side of the white frame to x=PI on the right side. The top of the white frame represents u=1, and the bottom u=-1. The level u=0 is right in the middle. </p>
+
+<p> When you click "Start", the graph will start evolving following the wave equation.</p>
+
+<p> You can edit the initial values of both u and u<sub>t</sub> by clicking your mouse on the white frames on the left. </p>
+
+<p> Note that the function does NOT become any smoother as the time goes by. It is also interesting to see how the waves bounce back from the boundary.</p>
+
+
+<div style="font-size:0.8em;"> 
+<p> Luis Silvestre. May 16, 2013.</p>
+
+<p> The solution to the wave equation is computed using separation of variables. </p>
+</div>
+
+<p> Check also the other online solvers </p>
+<ul>
+    <li> <a href="https://www.math.uchicago.edu/~luis/pde/heat.html"> Heat equation solver. </a> </li>
+    <li> <a href="https://www.math.uchicago.edu/~luis/pde/fd.html"> Generic solver of parabolic equations via finite difference schemes. </a> </li>
+</ul>
+</div>
+
+</div>
+
+<div style="position:relative;top:600px;">
+
+</div>
+
+
+
+</body></html>
