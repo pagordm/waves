@@ -22,6 +22,7 @@
 	var debug;
 
 	var running = false;
+	var started = false;
 	var N = 100;
 	var h = 1/N;
 	var time = 0;
@@ -55,13 +56,14 @@
 
 function update() {
 	uexpr = u_js_input.value.replaceAll(/sin\(((?:(?:Math\.PI)*(?:Math\.cos)*(?:Math\.sin)*[0-9+*\-pix]*)+)\)/gi, "Math.sin($1)").replaceAll(/pi/gi, "Math.PI").replaceAll(/x/gi, "(i/N)");
-	duexpr = du_js_input.value;
+	duexpr = du_js_input.value.replaceAll(/sin\(((?:(?:Math\.PI)*(?:Math\.cos)*(?:Math\.sin)*[0-9+*\-pix]*)+)\)/gi, "Math.sin($1)").replaceAll(/pi/gi, "Math.PI").replaceAll(/x/gi, "(i/N)");;
 	if (uexpr.trim().length==0 || duexpr.trim().length==0) return false;
 	for(i = 0; i < N; i++) {
 		u[i]=eval(uexpr)
 		du[i]=eval(duexpr)
 	}
 	draw();
+	started = false;
 }
 function init(){  
   ctxu = document.getElementById('value-of-u').getContext('2d');  
@@ -186,6 +188,7 @@ function start(){
   init_computation();
   interval = setInterval(drawnext,50);  
   running = true;
+  started = true;
   drawing = false;
 }
 
@@ -247,7 +250,7 @@ function drawnext(){
 } 
 
 function skip1() {
-if (!running) {
+if (!running && !started) {
 	start();
 }
 stop();
